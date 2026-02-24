@@ -64,38 +64,47 @@ end
 
 function semicolon_inserter.process(lines)
     local output = {}
-    for _, line in ipairs(lines) do
+    local typedef_name = nil
+    local inside_typedef = false
+
+    for i, line in ipairs(lines) do
         local trimmed = trim(line)
 
-        -- Auto-fix case
-        if trimmed:match("^case .+") and not trimmed:match(":$") then
-            line = line .. ":"
+        -- Detect typedef struct start
+        if starts_typedef_struct(trimmed) then
+            inside_typedef = true
+            table.insert(output, trimmed)
+            goto continue
         end
 
-        -- Auto-fix default
-        if trimmed == "default" then
-            line = line .. ":"
+        -- If inside typedef and find closing brace
+        if line == "}" and inside_typedef then
+            -- Next line contains typedef alias
+            local alias = trim(lines[i + 1] or "")
+            table.insert(output, "} " .. alias .. ";")
+            inside_typedef = false
+            goto skip_next
         end
 
-        if line == "}" then
-            -- Verificar se fechamento de struct
-            if #output > 0 then
-                local previous = output[#output]
-                if previous:match("^struct") or previous:match("^enum") or previous:match("^union") then
-                    table.insert(output, "};")
-                else
-                    table.insert(output, "}")
-                end
-            else
-                table.insert(output, "}")
+        -- Skip alias line (already handled)
+        if inside_typedef and i > 1 then
+            local prev = trim(lines[i - 1])
+            if prev == "}" then
+                goto continue
             end
-        elseif should_skip_semicolon(line) then
+        end
+
+        -- Normal behavior
+        if should_skip_semicolon(trimmed) then
             table.insert(output, line)
         else
             table.insert(output, line .. ";")
         end
+
+        ::continue::
     end
 
+    ::skip_next::
     return output
 end
 
