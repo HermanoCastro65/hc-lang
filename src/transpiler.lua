@@ -1,5 +1,6 @@
 local indent = require("src.indent")
 local block_generator = require("src.block_generator")
+local structural_handler = require("src.structural_handler")
 local semicolon_inserter = require("src.semicolon_inserter")
 
 local transpiler = {}
@@ -36,16 +37,19 @@ function transpiler.transpile(input_path, output_path)
     -- 1. Read HC source
     local lines = read_file(input_path)
 
-    -- 2. Structural analysis
+    -- 2. Indentation analysis
     local tokens = indent.process(lines)
 
-    -- 3. Generate blocks
+    -- 3. Generate block structure
     local block_output = block_generator.generate(tokens)
 
-    -- 4. Insert semicolons
-    local final_output = semicolon_inserter.process(block_output)
+    -- 4. Handle structural constructs (enum, struct, typedef, etc.)
+    local structured_output = structural_handler.process(block_output)
 
-    -- 5. Write C output
+    -- 5. Insert semicolons
+    local final_output = semicolon_inserter.process(structured_output)
+
+    -- 6. Write C output
     write_file(output_path, final_output)
 end
 
