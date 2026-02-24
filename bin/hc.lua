@@ -11,8 +11,7 @@ local function file_exists(name)
 end
 
 local function ensure_generated_folder()
-    local win = is_windows()
-    if win then
+    if is_windows() then
         os.execute('if not exist examples\\generated mkdir examples\\generated')
     else
         os.execute('mkdir -p examples/generated')
@@ -24,18 +23,19 @@ local function delete_file(path)
 end
 
 local function compile_and_run(c_file)
-    local exe_name = c_file:gsub("%.c$", "")
+    local exe_base = c_file:gsub("%.c$", "")
     local win = is_windows()
 
     if win then
-        local exe_path = exe_name .. ".exe"
+        local exe_path = exe_base .. ".exe"
+        local exe_run_path = ".\\" .. exe_path:gsub("/", "\\")
         os.execute('gcc "' .. c_file .. '" -o "' .. exe_path .. '"')
-        os.execute('cmd /c ".\\' .. exe_path:gsub("/", "\\") .. '"')
+        os.execute('cmd /c "' .. exe_run_path .. '"')
         delete_file(exe_path)
     else
-        os.execute('gcc "' .. c_file .. '" -o "' .. exe_name .. '"')
-        os.execute('./' .. exe_name)
-        delete_file(exe_name)
+        os.execute('gcc "' .. c_file .. '" -o "' .. exe_base .. '"')
+        os.execute('./' .. exe_base)
+        delete_file(exe_base)
     end
 end
 
@@ -63,37 +63,31 @@ local function run_single(file, keepc)
 end
 
 local function run_all_examples(keepc)
-    local win = is_windows()
-    local command
-
-    if win then
-        command = 'dir /b examples\\*.hc'
+    if is_windows() then
+        local handle = io.popen('cmd /c "dir /b examples\\*.hc"')
+        if handle then
+            for file in handle:lines() do
+                local full_path = "examples/" .. file
+                run_single(full_path, keepc)
+            end
+            handle:close()
+        end
     else
-        command = 'ls examples/*.hc'
+        local handle = io.popen('ls examples/*.hc')
+        if handle then
+            for file in handle:lines() do
+                run_single(file, keepc)
+            end
+            handle:close()
+        end
     end
-
-    local handle = io.popen(command)
-    if not handle then
-        print("Could not list example files.")
-        return
-    end
-
-    for file in handle:lines() do
-        local full_path = "examples/" .. file
-        run_single(full_path, keepc)
-    end
-
-    handle:close()
 end
 
 -- CLI parsing
 local arg1 = arg[1]
 local arg2 = arg[2]
 
-local keepc = false
-
 if arg1 == "--all" and arg2 == "--keepc" then
-    keepc = true
     run_all_examples(true)
 
 elseif arg1 == "--all" then
