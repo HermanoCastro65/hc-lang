@@ -11,11 +11,11 @@ Pipeline:
 
 HC Source (.hc)
     ↓
-Indentation Engine
+Indentation Engine (v0.1) ✅
     ↓
-Block Generator
+Block Generator (v0.2) ✅
     ↓
-Semicolon Inserter
+Semicolon Inserter (planned)
     ↓
 C Output (.c)
     ↓
@@ -35,6 +35,7 @@ Instead, it:
 - Delegates semantic validation to GCC/Clang
 
 This keeps the project:
+
 - Simple
 - Maintainable
 - Fully compatible with modern C
@@ -55,7 +56,7 @@ The indentation engine is responsible for:
 - `INDENT` → Represents block entry
 - `DEDENT` → Represents block exit
 
-Example:
+### Example
 
 HC Input:
 
@@ -82,17 +83,52 @@ DEDENT
 
 ---
 
-## Why Token-Based Design?
+## Block Generator (v0.2)
 
-Using structural tokens allows:
+The Block Generator is responsible for converting structural indentation tokens into C block delimiters.
 
-- Clean separation between indentation logic and code generation
-- Future extensibility (formatter, linter, LSP)
-- Easier debugging
+It receives the tokens produced by the Indentation Engine and transforms them into valid C block syntax.
 
-The indent engine does not:
+### Responsibilities
+
+- Convert `INDENT` → `{`
+- Convert `DEDENT` → `}`
+- Preserve `LINE` tokens as-is
+
+It does **not**:
+
+- Insert semicolons
 - Validate C syntax
-- Insert `{}` yet
-- Insert `;` yet
+- Format code output
 
-Those responsibilities belong to later modules.
+---
+
+### Example
+
+#### Input Tokens
+```c
+LINE int main()
+INDENT
+LINE int x = 10
+LINE if (x > 5)
+INDENT
+LINE x++
+DEDENT
+LINE return 0
+DEDENT
+```
+
+
+#### Generated Output
+
+```c
+int main()
+{
+int x = 10
+if (x > 5)
+{
+x++
+}
+return 0
+}
+```
