@@ -276,3 +276,24 @@ gcc examples/hello.c -o hello
 ./hello
 ```
 Output: Hello, HC
+
+---
+
+## CLI Interface (v0.5)
+
+The CLI Interface provides command-line access to the HC transpiler.
+
+It allows users to:
+
+- Transpile `.hc` files into `.c`
+- Optionally compile and execute the generated C code
+
+Example usage:
+
+```bash
+lua bin/hc.lua examples/hello.hc
+```
+With execution:
+```bash
+lua bin/hc.lua examples/hello.hc --run
+```
