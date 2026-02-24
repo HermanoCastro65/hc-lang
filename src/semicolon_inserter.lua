@@ -43,9 +43,15 @@ local function should_skip_semicolon(line)
     if t == "else" then return true end
     if t == "do" then return true end
 
+    -- DEFINIÇÕES ESTRUTURAIS (NÃO PODE TER ;)
+    if t:match("^struct%s+[%w_]+$") then return true end
+    if t:match("^enum%s+[%w_]+$") then return true end
+    if t:match("^union%s+[%w_]+$") then return true end
+    if t:match("^typedef%s+struct%s+[%w_]+$") then return true end
+    if t:match("^typedef%s+enum%s+[%w_]+$") then return true end
+    if t:match("^typedef%s+union%s+[%w_]+$") then return true end
+
     if looks_like_function_definition(t) then return true end
-    if is_struct_start(t) then return true end
-    if is_typedef_struct_start(t) then return true end
 
     if t:sub(-1) == "," then return true end
     if t:sub(-1) == ";" then return true end
