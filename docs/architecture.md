@@ -179,7 +179,9 @@ Semantic correctness remains the responsibility of GCC/Clang.
 #### Input
 
 ```c
-int main(),
+#include <stdio.h>
+
+int main()
     int x = 10
     int y = 20
     if (x > 5)
@@ -187,14 +189,14 @@ int main(),
     else
         x--
     for (int i = 0; i < 5; i++)
-        printf(\"%d", i)
+        printf("%d", i)
     while (x < y)
         x++
     switch (x)
         case 1
             break
         default
-        break
+            break
     return 0
 ```
 
