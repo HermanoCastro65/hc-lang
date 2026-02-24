@@ -226,3 +226,53 @@ int main() {
   return 0;
 }
  ```
+
+ ---
+
+## Transpiler Core (v0.4)
+
+The Transpiler Core orchestrates all transformation modules and produces the final C output.
+
+It is responsible for:
+
+- Reading `.hc` source files
+- Executing the transformation pipeline
+- Writing the generated `.c` file
+
+### Pipeline Execution
+
+1. Read source file
+2. Run Indentation Engine
+3. Run Block Generator
+4. Run Semicolon Inserter
+5. Write output file
+
+### Responsibility Separation
+
+The Transpiler Core does not:
+
+- Perform syntax validation
+- Format code
+- Compile C code
+
+It only coordinates transformation stages.
+
+---
+
+### Example Usage
+```c
+examples/hello.hc
+
+#include <stdio.h>
+
+int main()
+    printf("Hello, HC")
+    return 0
+```
+Run:
+```bash
+lua tests/test_transpiler.lua
+gcc examples/hello.c -o hello
+./hello
+```
+Output: Hello, HC
