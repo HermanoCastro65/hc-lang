@@ -34,6 +34,8 @@ end
 local function should_skip_semicolon(line)
     local trimmed = trim(line)
 
+    -- Skip lines ending with comma
+    if trimmed:sub(-1) == "," then return true end
     if trimmed == "" then return true end
     if trimmed:match("^#") then return true end
     if trimmed == "{" or trimmed == "}" then return true end
@@ -54,8 +56,19 @@ end
 
 function semicolon_inserter.process(lines)
     local output = {}
-
     for _, line in ipairs(lines) do
+        local trimmed = trim(line)
+
+        -- Auto-fix case
+        if trimmed:match("^case .+") and not trimmed:match(":$") then
+            line = line .. ":"
+        end
+
+        -- Auto-fix default
+        if trimmed == "default" then
+            line = line .. ":"
+        end
+
         if should_skip_semicolon(line) then
             table.insert(output, line)
         else
