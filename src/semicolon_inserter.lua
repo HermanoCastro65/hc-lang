@@ -11,40 +11,42 @@ local function starts_with_control_keyword(line)
         or line:match("^switch%s*%b()$")
 end
 
-local function is_function_definition(line)
-    -- Ends with ) and is not control structure
-    if line:match("%)$") and not starts_with_control_keyword(line) then
+local function looks_like_function_definition(line)
+    -- Must end with )
+    if not line:match("%)$") then
+        return false
+    end
+
+    -- Skip control structures
+    if starts_with_control_keyword(line) then
+        return false
+    end
+
+    -- Must start with something that looks like a type
+    -- Example: int main(), void test(), char* foo()
+    if line:match("^[%a_][%w_%s%*]*%s+[%a_][%w_]*%s*%b()$") then
         return true
     end
+
     return false
 end
 
 local function should_skip_semicolon(line)
     local trimmed = trim(line)
 
-    -- Empty
     if trimmed == "" then return true end
-
-    -- Preprocessor
     if trimmed:match("^#") then return true end
-
-    -- Braces
     if trimmed == "{" or trimmed == "}" then return true end
 
-    -- Control structures
     if starts_with_control_keyword(trimmed) then return true end
-
     if trimmed == "else" then return true end
     if trimmed == "do" then return true end
 
-    -- Case/default
     if trimmed:match("^case .+:$") then return true end
     if trimmed:match("^default:$") then return true end
 
-    -- Function definition
-    if is_function_definition(trimmed) then return true end
+    if looks_like_function_definition(trimmed) then return true end
 
-    -- Already has ;
     if trimmed:sub(-1) == ";" then return true end
 
     return false
