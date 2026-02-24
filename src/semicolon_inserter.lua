@@ -62,30 +62,39 @@ end
 
 function semicolon_inserter.process(lines)
     local output = {}
+    local inside_struct = false
 
-    for i, line in ipairs(lines) do
+    for _, line in ipairs(lines) do
         local t = trim(line)
-        local prev = trim(output[#output] or "")
 
-        -- corrigir case
+        -- Auto-fix case
         if t:match("^case .+") and not t:match(":$") then
             line = line .. ":"
             t = trim(line)
         end
 
-        -- corrigir default
+        -- Auto-fix default
         if t == "default" then
             line = line .. ":"
             t = trim(line)
         end
 
-        -- DO-WHILE special case
-        if t:match("^while%s*%b()$") and prev == "}" then
-            table.insert(output, line .. ";")
+        -- Detect struct start
+        if t:match("^struct%s+[%w_]+$") then
+            inside_struct = true
+            table.insert(output, line)
+
+        -- Detect closing brace
+        elseif t == "}" then
+            if inside_struct then
+                table.insert(output, "};")
+                inside_struct = false
+            else
+                table.insert(output, "}")
+            end
 
         elseif should_skip_semicolon(line) then
             table.insert(output, line)
-
         else
             table.insert(output, line .. ";")
         end
