@@ -64,47 +64,34 @@ end
 
 function semicolon_inserter.process(lines)
     local output = {}
-    local typedef_name = nil
+    local i = 1
     local inside_typedef = false
 
-    for i, line in ipairs(lines) do
+    while i <= #lines do
+        local line = lines[i]
         local trimmed = trim(line)
 
         -- Detect typedef struct start
-        if starts_typedef_struct(trimmed) then
+        if trimmed:match("^typedef%s+struct%s+[%w_]+$") then
             inside_typedef = true
             table.insert(output, trimmed)
-            goto continue
-        end
-
-        -- If inside typedef and find closing brace
-        if line == "}" and inside_typedef then
-            -- Next line contains typedef alias
+            i = i + 1
+        elseif inside_typedef and trimmed == "}" then
+            -- Next line is alias name
             local alias = trim(lines[i + 1] or "")
             table.insert(output, "} " .. alias .. ";")
             inside_typedef = false
-            goto skip_next
-        end
-
-        -- Skip alias line (already handled)
-        if inside_typedef and i > 1 then
-            local prev = trim(lines[i - 1])
-            if prev == "}" then
-                goto continue
-            end
-        end
-
-        -- Normal behavior
-        if should_skip_semicolon(trimmed) then
-            table.insert(output, line)
+            i = i + 2  -- skip alias line
         else
-            table.insert(output, line .. ";")
+            if should_skip_semicolon(trimmed) then
+                table.insert(output, line)
+            else
+                table.insert(output, line .. ";")
+            end
+            i = i + 1
         end
-
-        ::continue::
     end
 
-    ::skip_next::
     return output
 end
 
