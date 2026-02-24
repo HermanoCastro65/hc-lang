@@ -12,83 +12,85 @@ local function starts_with_control_keyword(line)
 end
 
 local function looks_like_function_definition(line)
-    -- Must end with )
-    if not line:match("%)$") then
-        return false
+    -- termina com ) e não é controle
+    if line:match("%)$") and not starts_with_control_keyword(line) then
+        -- tem pelo menos dois identificadores antes do ()
+        if line:match("^[%w_%*%s]+%s+[%w_]+%s*%b()$") then
+            return true
+        end
     end
-
-    -- Skip control structures
-    if starts_with_control_keyword(line) then
-        return false
-    end
-
-    -- Must start with something that looks like a type
-    -- Example: int main(), void test(), char* foo()
-    if line:match("^[%a_][%w_%s%*]*%s+[%a_][%w_]*%s*%b()$") then
-        return true
-    end
-
     return false
 end
 
-local function starts_struct_block(line)
-    if line:match("^struct%s+[%w_]+$") then return true end
-    if line:match("^enum%s+[%w_]+$") then return true end
-    if line:match("^union%s+[%w_]+$") then return true end
-    return false
+local function is_struct_start(line)
+    return line:match("^struct%s+[%w_]+$")
+        or line:match("^enum%s+[%w_]+$")
+        or line:match("^union%s+[%w_]+$")
+end
+
+local function is_typedef_struct_start(line)
+    return line:match("^typedef%s+struct%s+[%w_]+$")
 end
 
 local function should_skip_semicolon(line)
-    local trimmed = trim(line)
-    if starts_struct_block(trimmed) then return true end
+    local t = trim(line)
 
-    -- Skip lines ending with comma
-    if trimmed:sub(-1) == "," then return true end
-    if trimmed == "" then return true end
-    if trimmed:match("^#") then return true end
-    if trimmed == "{" or trimmed == "}" then return true end
+    if t == "" then return true end
+    if t:match("^#") then return true end
+    if t == "{" or t == "}" then return true end
 
-    if starts_with_control_keyword(trimmed) then return true end
-    if trimmed == "else" then return true end
-    if trimmed == "do" then return true end
+    if starts_with_control_keyword(t) then return true end
+    if t == "else" then return true end
+    if t == "do" then return true end
 
-    if trimmed:match("^case .+:$") then return true end
-    if trimmed:match("^default:$") then return true end
+    if looks_like_function_definition(t) then return true end
+    if is_struct_start(t) then return true end
+    if is_typedef_struct_start(t) then return true end
 
-    if looks_like_function_definition(trimmed) then return true end
-
-    if trimmed:sub(-1) == ";" then return true end
+    if t:sub(-1) == "," then return true end
+    if t:sub(-1) == ";" then return true end
+    if t:sub(-1) == ":" then return true end
 
     return false
 end
 
 function semicolon_inserter.process(lines)
     local output = {}
-    local i = 1
-    local inside_typedef = false
+    local inside_struct = false
 
-    while i <= #lines do
-        local line = lines[i]
-        local trimmed = trim(line)
+    for _, line in ipairs(lines) do
+        local t = trim(line)
 
-        -- Detect typedef struct start
-        if trimmed:match("^typedef%s+struct%s+[%w_]+$") then
-            inside_typedef = true
-            table.insert(output, trimmed)
-            i = i + 1
-        elseif inside_typedef and trimmed == "}" then
-            -- Next line is alias name
-            local alias = trim(lines[i + 1] or "")
-            table.insert(output, "} " .. alias .. ";")
-            inside_typedef = false
-            i = i + 2  -- skip alias line
-        else
-            if should_skip_semicolon(trimmed) then
-                table.insert(output, line)
+        -- Auto-fix case
+        if t:match("^case .+") and not t:match(":$") then
+            line = line .. ":"
+            t = trim(line)
+        end
+
+        -- Auto-fix default
+        if t == "default" then
+            line = line .. ":"
+            t = trim(line)
+        end
+
+        -- Detect struct start
+        if t:match("^struct%s+[%w_]+$") then
+            inside_struct = true
+            table.insert(output, line)
+
+        -- Detect closing brace
+        elseif t == "}" then
+            if inside_struct then
+                table.insert(output, "};")
+                inside_struct = false
             else
-                table.insert(output, line .. ";")
+                table.insert(output, "}")
             end
-            i = i + 1
+
+        elseif should_skip_semicolon(line) then
+            table.insert(output, line)
+        else
+            table.insert(output, line .. ";")
         end
     end
 
