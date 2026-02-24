@@ -31,8 +31,16 @@ local function looks_like_function_definition(line)
     return false
 end
 
+local function starts_struct_block(line)
+    if line:match("^struct%s+[%w_]+$") then return true end
+    if line:match("^enum%s+[%w_]+$") then return true end
+    if line:match("^union%s+[%w_]+$") then return true end
+    return false
+end
+
 local function should_skip_semicolon(line)
     local trimmed = trim(line)
+    if starts_struct_block(trimmed) then return true end
 
     -- Skip lines ending with comma
     if trimmed:sub(-1) == "," then return true end
@@ -69,7 +77,19 @@ function semicolon_inserter.process(lines)
             line = line .. ":"
         end
 
-        if should_skip_semicolon(line) then
+        if line == "}" then
+            -- Verificar se fechamento de struct
+            if #output > 0 then
+                local previous = output[#output]
+                if previous:match("^struct") or previous:match("^enum") or previous:match("^union") then
+                    table.insert(output, "};")
+                else
+                    table.insert(output, "}")
+                end
+            else
+                table.insert(output, "}")
+            end
+        elseif should_skip_semicolon(line) then
             table.insert(output, line)
         else
             table.insert(output, line .. ";")
