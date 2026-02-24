@@ -15,12 +15,24 @@ end
 
 local function compile_and_run(c_file)
     local exe_name = c_file:gsub("%.c$", "")
+    local is_windows = package.config:sub(1,1) == "\\"
 
     print("Compiling with GCC...")
-    os.execute("gcc " .. c_file .. " -o " .. exe_name)
 
-    print("Running executable...")
-    os.execute(exe_name)
+    if is_windows then
+        -- Converte / para \
+        local exe_path = exe_name:gsub("/", "\\") .. ".exe"
+        local c_path = c_file:gsub("/", "\\")
+
+        os.execute('gcc "' .. c_path .. '" -o "' .. exe_path .. '"')
+
+        print("Running executable...")
+        os.execute('cmd /c "' .. exe_path .. '"')
+    else
+        os.execute('gcc "' .. c_file .. '" -o "' .. exe_name .. '"')
+        print("Running executable...")
+        os.execute('./' .. exe_name)
+    end
 end
 
 -- CLI Arguments
